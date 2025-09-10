@@ -1,0 +1,48 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "devops-demo-app.fullname" . }}
+  labels:
+    {{- include "devops-demo-app.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "devops-demo-app.selectorLabels" . | nindent 6 }}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+    {{- with .Values.networkPolicy.ingress }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  egress:
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Allow connection to Redis
+  - to:
+    - podSelector:
+        matchLabels:
+          app: redis
+    ports:
+    - protocol: TCP
+      port: 6379
+  # Allow connection to PostgreSQL
+  - to:
+    - podSelector:
+        matchLabels:
+          app: postgres
+    ports:
+    - protocol: TCP
+      port: 5432
+  # Allow HTTPS outbound for external APIs
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+{{- end }}

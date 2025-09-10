@@ -1,0 +1,77 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: devops-demo-staging
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: devops-demo
+    app.kubernetes.io/environment: staging
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: devops-demo
+  
+  source:
+    repoURL: https://github.com/your-org/devops-demo.git
+    targetRevision: main
+    path: helm/charts/app
+    helm:
+      valueFiles:
+        - values.yaml
+      parameters:
+        - name: image.tag
+          value: main
+        - name: environment
+          value: staging
+        - name: replicaCount
+          value: "3"
+        - name: ingress.enabled
+          value: "true"
+        - name: ingress.hosts[0].host
+          value: staging-api.example.com
+        - name: resources.requests.cpu
+          value: "100m"
+        - name: resources.requests.memory
+          value: "256Mi"
+        - name: resources.limits.cpu
+          value: "300m"
+        - name: resources.limits.memory
+          value: "512Mi"
+        - name: blueGreen.enabled
+          value: "true"
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: staging
+  
+  syncPolicy:
+    # Manual sync for staging to ensure proper testing
+    automated: null
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+  
+  revisionHistoryLimit: 10
+  
+  ignoreDifferences:
+  - group: apps
+    kind: Deployment
+    jsonPointers:
+    - /spec/replicas
+  
+  info:
+  - name: Description
+    value: DevOps Demo Application - Staging Environment
+  - name: Owner
+    value: DevOps Team
+  - name: Environment
+    value: Staging
+  - name: DeploymentStrategy
+    value: Blue-Green

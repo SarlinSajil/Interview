@@ -1,0 +1,75 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: devops-demo-dev
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: devops-demo
+    app.kubernetes.io/environment: dev
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: devops-demo
+  
+  source:
+    repoURL: https://github.com/your-org/devops-demo.git
+    targetRevision: develop
+    path: helm/charts/app
+    helm:
+      valueFiles:
+        - values.yaml
+      parameters:
+        - name: image.tag
+          value: develop
+        - name: environment
+          value: development
+        - name: replicaCount
+          value: "2"
+        - name: ingress.enabled
+          value: "true"
+        - name: ingress.hosts[0].host
+          value: dev-api.example.com
+        - name: resources.requests.cpu
+          value: "50m"
+        - name: resources.requests.memory
+          value: "128Mi"
+        - name: resources.limits.cpu
+          value: "200m"
+        - name: resources.limits.memory
+          value: "256Mi"
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev
+  
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  
+  revisionHistoryLimit: 10
+  
+  ignoreDifferences:
+  - group: apps
+    kind: Deployment
+    jsonPointers:
+    - /spec/replicas
+  
+  info:
+  - name: Description
+    value: DevOps Demo Application - Development Environment
+  - name: Owner
+    value: DevOps Team
+  - name: Environment
+    value: Development

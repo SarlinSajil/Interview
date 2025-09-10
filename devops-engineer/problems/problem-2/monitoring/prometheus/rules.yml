@@ -1,0 +1,122 @@
+groups:
+  - name: devops-demo.rules
+    rules:
+      # Application availability
+      - record: devops_demo:availability
+        expr: |
+          (
+            sum(up{job="devops-demo-app"}) /
+            sum(up{job="devops-demo-app"} * 0 + 1)
+          ) * 100
+        labels:
+          service: devops-demo-app
+
+      # Request rate
+      - record: devops_demo:request_rate
+        expr: |
+          sum(rate(api_counter_total{job="devops-demo-app"}[5m])) by (environment, instance)
+        labels:
+          service: devops-demo-app
+
+      # Error rate
+      - record: devops_demo:error_rate
+        expr: |
+          sum(rate(http_requests_total{job="devops-demo-app", status=~"5.."}[5m])) by (environment, instance) /
+          sum(rate(http_requests_total{job="devops-demo-app"}[5m])) by (environment, instance) * 100
+        labels:
+          service: devops-demo-app
+
+      # Response time 95th percentile
+      - record: devops_demo:response_time_95th
+        expr: |
+          histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job="devops-demo-app"}[5m])) by (le, environment, instance))
+        labels:
+          service: devops-demo-app
+
+      # CPU utilization
+      - record: devops_demo:cpu_utilization
+        expr: |
+          sum(rate(container_cpu_usage_seconds_total{pod=~".*devops-demo-app.*"}[5m])) by (pod, namespace) * 100
+        labels:
+          service: devops-demo-app
+
+      # Memory utilization
+      - record: devops_demo:memory_utilization
+        expr: |
+          sum(container_memory_working_set_bytes{pod=~".*devops-demo-app.*"}) by (pod, namespace) /
+          sum(container_spec_memory_limit_bytes{pod=~".*devops-demo-app.*"}) by (pod, namespace) * 100
+        labels:
+          service: devops-demo-app
+
+      # Pod restart rate
+      - record: devops_demo:pod_restart_rate
+        expr: |
+          sum(increase(kube_pod_container_status_restarts_total{pod=~".*devops-demo-app.*"}[1h])) by (pod, namespace)
+        labels:
+          service: devops-demo-app
+
+  - name: kubernetes.rules
+    rules:
+      # Node CPU utilization
+      - record: node:cpu_utilization
+        expr: |
+          (
+            1 - avg by (instance) (
+              rate(node_cpu_seconds_total{mode="idle"}[5m])
+            )
+          ) * 100
+
+      # Node memory utilization
+      - record: node:memory_utilization
+        expr: |
+          (
+            1 - (
+              node_memory_MemAvailable_bytes /
+              node_memory_MemTotal_bytes
+            )
+          ) * 100
+
+      # Node disk utilization
+      - record: node:disk_utilization
+        expr: |
+          (
+            node_filesystem_size_bytes{fstype!="tmpfs"} -
+            node_filesystem_free_bytes{fstype!="tmpfs"}
+          ) /
+          node_filesystem_size_bytes{fstype!="tmpfs"} * 100
+
+      # Cluster resource utilization
+      - record: cluster:cpu_requests
+        expr: |
+          sum(kube_pod_container_resource_requests_cpu_cores)
+
+      - record: cluster:memory_requests
+        expr: |
+          sum(kube_pod_container_resource_requests_memory_bytes)
+
+      - record: cluster:cpu_limits
+        expr: |
+          sum(kube_pod_container_resource_limits_cpu_cores)
+
+      - record: cluster:memory_limits
+        expr: |
+          sum(kube_pod_container_resource_limits_memory_bytes)
+
+  - name: database.rules
+    rules:
+      # PostgreSQL connection utilization
+      - record: postgres:connection_utilization
+        expr: |
+          sum(pg_stat_database_numbackends) /
+          sum(pg_settings_max_connections) * 100
+
+      # Redis memory utilization
+      - record: redis:memory_utilization
+        expr: |
+          sum(redis_memory_used_bytes) /
+          sum(redis_memory_max_bytes) * 100
+
+      # Database query rate
+      - record: postgres:query_rate
+        expr: |
+          sum(rate(pg_stat_database_xact_commit[5m]) + rate(pg_stat_database_xact_rollback[5m])) by (datname)

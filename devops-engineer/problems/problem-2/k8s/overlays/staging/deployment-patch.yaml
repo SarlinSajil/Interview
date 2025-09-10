@@ -1,0 +1,17 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devops-demo-app
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+      - name: app
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "300m"

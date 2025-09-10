@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "devops-demo-app.fullname" . }}-config
+  labels:
+    {{- include "devops-demo-app.labels" . | nindent 4 }}
+data:
+  environment: {{ .Values.environment | quote }}
+  redis.host: {{ .Values.cache.redis.host | quote }}
+  redis.port: {{ .Values.cache.redis.port | quote }}
+  postgres.host: {{ .Values.database.postgres.host | quote }}
+  postgres.port: {{ .Values.database.postgres.port | quote }}
+  postgres.database: {{ .Values.database.postgres.database | quote }}
+  log.level: {{ .Values.logging.level | quote }}
+  metrics.enabled: {{ .Values.monitoring.enabled | quote }}

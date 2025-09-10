@@ -1,0 +1,202 @@
+# Default values for devops-demo-app
+# This is a YAML-formatted file
+
+# Application configuration
+app:
+  name: devops-demo-app
+  version: "1.0.0"
+
+# Image configuration
+image:
+  repository: ghcr.io/your-org/devops-demo-app
+  tag: "latest"
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+# Deployment configuration
+replicaCount: 3
+
+# Blue-Green deployment configuration
+blueGreen:
+  enabled: false
+  color: blue
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 8000
+  targetPort: 8000
+  annotations: {}
+
+# Ingress configuration
+ingress:
+  enabled: false
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: api.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: api-tls
+      hosts:
+        - api.example.com
+
+# Resource configuration
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "100m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+
+# Autoscaling configuration
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+# Service account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+  automountServiceAccountToken: false
+
+# Node selection
+nodeSelector: {}
+tolerations: []
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - devops-demo-app
+          topologyKey: kubernetes.io/hostname
+
+# Health checks
+healthCheck:
+  enabled: true
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 8000
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readinessProbe:
+    httpGet:
+      path: /ready
+      port: 8000
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 2
+
+# Environment configuration
+environment: development
+
+# Database configuration
+database:
+  postgres:
+    host: postgres
+    port: 5432
+    database: interview_db
+    existingSecret: devops-demo-secrets
+    userKey: postgres.user
+    passwordKey: postgres.password
+
+# Cache configuration
+cache:
+  redis:
+    host: redis
+    port: 6379
+    existingSecret: devops-demo-secrets
+    passwordKey: redis.password
+
+# Monitoring configuration
+monitoring:
+  enabled: true
+  prometheus:
+    scrape: true
+    port: 8000
+    path: /metrics
+
+# Logging configuration
+logging:
+  level: INFO
+
+# Network policy
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: devops-demo-app
+      ports:
+        - protocol: TCP
+          port: 8000
+
+# Extra environment variables
+extraEnvVars: []
+# - name: CUSTOM_VAR
+#   value: "custom_value"
+
+# Extra volumes and volume mounts
+extraVolumes: []
+extraVolumeMounts: []
+
+# Pod annotations
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8000"
+  prometheus.io/path: "/metrics"
+
+# Pod labels
+podLabels: {}
+
+# Migration job configuration
+migration:
+  enabled: false
+  image:
+    repository: ghcr.io/your-org/devops-demo-app
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  restartPolicy: Never
+  backoffLimit: 3

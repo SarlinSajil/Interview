@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: devops-demo-config
+data:
+  environment: "staging"
+  log.level: "INFO"

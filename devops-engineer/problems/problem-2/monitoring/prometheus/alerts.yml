@@ -1,0 +1,179 @@
+groups:
+  - name: devops-demo.alerts
+    rules:
+      # High-severity alerts
+      - alert: ApplicationDown
+        expr: devops_demo:availability < 50
+        for: 1m
+        labels:
+          severity: critical
+          service: devops-demo-app
+        annotations:
+          summary: "DevOps Demo application is down"
+          description: "Application availability is {{ $value }}% for environment {{ $labels.environment }}"
+          runbook_url: "https://runbooks.example.com/devops-demo/application-down"
+
+      - alert: HighErrorRate
+        expr: devops_demo:error_rate > 5
+        for: 5m
+        labels:
+          severity: critical
+          service: devops-demo-app
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }}% for {{ $labels.environment }} environment"
+          runbook_url: "https://runbooks.example.com/devops-demo/high-error-rate"
+
+      - alert: HighResponseTime
+        expr: devops_demo:response_time_95th > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: devops-demo-app
+        annotations:
+          summary: "High response time detected"
+          description: "95th percentile response time is {{ $value }}s for {{ $labels.environment }}"
+          runbook_url: "https://runbooks.example.com/devops-demo/high-response-time"
+
+      - alert: PodCrashLooping
+        expr: devops_demo:pod_restart_rate > 5
+        for: 10m
+        labels:
+          severity: critical
+          service: devops-demo-app
+        annotations:
+          summary: "Pod is crash looping"
+          description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} has restarted {{ $value }} times in the last hour"
+          runbook_url: "https://runbooks.example.com/devops-demo/pod-crash-looping"
+
+      # Resource utilization alerts
+      - alert: HighCPUUtilization
+        expr: devops_demo:cpu_utilization > 80
+        for: 10m
+        labels:
+          severity: warning
+          service: devops-demo-app
+        annotations:
+          summary: "High CPU utilization"
+          description: "CPU utilization is {{ $value }}% for pod {{ $labels.pod }}"
+          runbook_url: "https://runbooks.example.com/devops-demo/high-cpu"
+
+      - alert: HighMemoryUtilization
+        expr: devops_demo:memory_utilization > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: devops-demo-app
+        annotations:
+          summary: "High memory utilization"
+          description: "Memory utilization is {{ $value }}% for pod {{ $labels.pod }}"
+          runbook_url: "https://runbooks.example.com/devops-demo/high-memory"
+
+      # Database alerts
+      - alert: PostgreSQLDown
+        expr: up{job="postgresql"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: postgresql
+        annotations:
+          summary: "PostgreSQL database is down"
+          description: "PostgreSQL database is not responding"
+          runbook_url: "https://runbooks.example.com/postgresql/database-down"
+
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: "Redis cache is down"
+          description: "Redis cache is not responding"
+          runbook_url: "https://runbooks.example.com/redis/cache-down"
+
+      - alert: HighDatabaseConnections
+        expr: postgres:connection_utilization > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: postgresql
+        annotations:
+          summary: "High database connection utilization"
+          description: "Database connection utilization is {{ $value }}%"
+          runbook_url: "https://runbooks.example.com/postgresql/high-connections"
+
+      # Node alerts
+      - alert: NodeDown
+        expr: up{job="kubernetes-nodes"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: kubernetes
+        annotations:
+          summary: "Kubernetes node is down"
+          description: "Node {{ $labels.instance }} is down"
+          runbook_url: "https://runbooks.example.com/kubernetes/node-down"
+
+      - alert: NodeHighCPU
+        expr: node:cpu_utilization > 90
+        for: 10m
+        labels:
+          severity: warning
+          service: kubernetes
+        annotations:
+          summary: "Node high CPU utilization"
+          description: "Node {{ $labels.instance }} CPU utilization is {{ $value }}%"
+          runbook_url: "https://runbooks.example.com/kubernetes/node-high-cpu"
+
+      - alert: NodeHighMemory
+        expr: node:memory_utilization > 90
+        for: 5m
+        labels:
+          severity: critical
+          service: kubernetes
+        annotations:
+          summary: "Node high memory utilization"
+          description: "Node {{ $labels.instance }} memory utilization is {{ $value }}%"
+          runbook_url: "https://runbooks.example.com/kubernetes/node-high-memory"
+
+      - alert: NodeHighDisk
+        expr: node:disk_utilization > 85
+        for: 10m
+        labels:
+          severity: warning
+          service: kubernetes
+        annotations:
+          summary: "Node high disk utilization"
+          description: "Node {{ $labels.instance }} disk utilization is {{ $value }}%"
+          runbook_url: "https://runbooks.example.com/kubernetes/node-high-disk"
+
+      # Deployment alerts
+      - alert: DeploymentReplicasMismatch
+        expr: |
+          (
+            kube_deployment_spec_replicas !=
+            kube_deployment_status_replicas_available
+          ) and (
+            changes(kube_deployment_status_replicas_updated[10m]) == 0
+          )
+        for: 15m
+        labels:
+          severity: warning
+          service: kubernetes
+        annotations:
+          summary: "Deployment replicas mismatch"
+          description: "Deployment {{ $labels.deployment }} has {{ $labels.spec_replicas }} desired but {{ $labels.available_replicas }} available replicas"
+          runbook_url: "https://runbooks.example.com/kubernetes/deployment-replicas-mismatch"
+
+      # Certificate expiration alerts
+      - alert: CertificateExpiringSoon
+        expr: probe_ssl_earliest_cert_expiry - time() < 86400 * 7
+        for: 1h
+        labels:
+          severity: warning
+          service: ssl
+        annotations:
+          summary: "SSL certificate expiring soon"
+          description: "SSL certificate for {{ $labels.instance }} expires in {{ $value | humanizeDuration }}"
+          runbook_url: "https://runbooks.example.com/ssl/certificate-expiring"
